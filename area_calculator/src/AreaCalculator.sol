@@ -9,4 +9,11 @@ contract AreaCalculator {
         return (base * height) / 2;
     }
 
+    // Function to calculate the area of a rectangle
+    function calculateRectangleArea(uint256 length, uint256 width) public pure returns (uint256) {
+        require(length > 0 && width > 0, "Length and width must be greater than zero");
+        return length * width;
+    }
+
+  
 }
