@@ -15,5 +15,9 @@ contract AreaCalculator {
         return length * width;
     }
 
-  
+    // Function to calculate the area of a square
+    function calculateSquareArea(uint256 side) public pure returns (uint256) {
+        require(side > 0, "Side must be greater than zero");
+        return side * side;
+    }
 }
