@@ -21,3 +21,8 @@ contract AreaCalculator {
         return side * side;
     }
 }
+
+
+// Deployer: 0xF4B71887d3988Cb1f9D7daA4F16112e0C7DAb8E8
+// Deployed to: 0x75a0a4a2275d84c02A3F1cf232874e7fd3489B2c
+// Transaction hash: 0x7ff0605d33ba17309cfd20a257967536a55caa24bb47c9e03f297201f89021e0
