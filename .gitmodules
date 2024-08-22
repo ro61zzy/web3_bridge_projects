@@ -1,0 +1,3 @@
+[submodule "area_calculator/lib/forge-std"]
+	path = area_calculator/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
