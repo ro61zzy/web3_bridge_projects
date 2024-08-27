@@ -10,6 +10,9 @@ contract Todo {
 
     TodoItem[] todos;
 
+event TodoCreated();
+ event TodoUpdated(uint256 indexed index);
+
     function createTodo(
         string memory _title,
         string memory _description
@@ -20,7 +23,7 @@ contract Todo {
 
         //2nd way
 
-
+emit TodoCreated();
     }
 
     function getTodos() external view returns (TodoItem[] memory) {
@@ -28,10 +31,18 @@ contract Todo {
     }
 
     function getTodo(uint256 _index) external view returns (TodoItem memory) {
-        
+         require(_index <= todos.length - 1, "index out of bound");
         return todos[_index];
     }
 
     //updating notes
-    function updateTodo(uint256 _index) external {}
+     function updateStatus(uint256 _index) external {
+        require(_index <= todos.length - 1, "index out of bound");
+
+        TodoItem storage td = todos[_index];
+
+        td.isDone = !td.isDone;
+
+        emit TodoUpdated(_index);
+    }
 }
