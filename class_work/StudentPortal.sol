@@ -26,7 +26,7 @@ contract studentPortal {
 
     //restrict to owner only
     modifier onlyOwner() {
-        require(msg.sender == owner, "owner only can perform this action.");
+        require(msg.sender == owner, "owner only");
         _;
     }
 
@@ -85,19 +85,24 @@ contract studentPortal {
     }
 
     //updating
-     function updateStudent(
-         string memory _phoneNumber,
-        string memory _name, 
-        string memory _email, 
+    function updateStudent(
+        string memory _phoneNumber,
+        string memory _name,
+        string memory _email,
         string memory _country
     ) public onlyOwner {
-        students[_phoneNumber] = students(_name, _email, _country);
+        Student storage student = students[_phoneNumber];
+        student.name = _name;
+        student.email = _email;
+        student.country = _country;
+
         emit StudentUpdated(_phoneNumber);
     }
 
     //delete
-      function deleteStudent(string  _phoneNumber) public onlyOwner {
+    function deleteStudent(string memory _phoneNumber) public onlyOwner {
         delete students[_phoneNumber];
+
         emit StudentDeleted(_phoneNumber);
     }
 }
