@@ -1,0 +1,14 @@
+{
+    "name": "Opensea NFT",
+    "description": "This is an opensea NFT created by me!",
+    "image": "ipfs://QmVBU25mYwiTRyE8fDL2z6eZcCJiXL9gyGLvU2h3r2fMJY",
+    "attributes": [
+      {
+        "trait_type": "from web3 bridge",
+        "value": "100"
+      }
+    ]
+  }
+  
+
+
