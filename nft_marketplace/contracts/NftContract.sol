@@ -28,11 +28,7 @@ contract NFTMarketplace is ERC721, Ownable, ReentrancyGuard {
 
     constructor() ERC721("NFT Marketplace Token", "NFTM") {}
 
-    /**
-     * @notice Mint a new NFT and assign it to the owner (contract owner or authorized minter)
-     * @dev Only the contract owner or authorized users can mint
-     * @param recipient The address of the recipient for the newly minted NFT
-     */
+ 
     function mintNFT(address recipient) public onlyOwner returns (uint256) {
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
@@ -42,11 +38,7 @@ contract NFTMarketplace is ERC721, Ownable, ReentrancyGuard {
         return newItemId;
     }
 
-    /**
-     * @notice List an NFT for sale
-     * @param tokenId The token ID of the NFT to list
-     * @param price The price (in Wei) at which the NFT is being listed
-     */
+   
     function listNFT(uint256 tokenId, uint256 price) public {
         require(ownerOf(tokenId) == msg.sender, "You do not own this NFT.");
         require(price > 0, "Price must be greater than zero.");
@@ -56,10 +48,7 @@ contract NFTMarketplace is ERC721, Ownable, ReentrancyGuard {
         emit NFTListed(tokenId, price, msg.sender);
     }
 
-    /**
-     * @notice Delist an NFT (remove it from sale)
-     * @param tokenId The token ID of the NFT to delist
-     */
+
     function delistNFT(uint256 tokenId) public {
         Listing memory listing = _listings[tokenId];
         require(listing.seller == msg.sender, "You are not the seller.");
@@ -70,10 +59,7 @@ contract NFTMarketplace is ERC721, Ownable, ReentrancyGuard {
         emit NFTDelisted(tokenId, msg.sender);
     }
 
-    /**
-     * @notice Buy an NFT that is listed for sale
-     * @param tokenId The token ID of the NFT to purchase
-     */
+  
     function buyNFT(uint256 tokenId) public payable nonReentrant {
         Listing memory listing = _listings[tokenId];
         require(listing.isListed == true, "This NFT is not for sale.");
