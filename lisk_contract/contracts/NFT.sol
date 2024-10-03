@@ -14,3 +14,10 @@ contract NFT is ERC721 {
         return newItemId;
     }
 }
+
+// npx hardhat compile
+// Generating typings for: 14 artifacts in dir: typechain-types for target: ethers-v6
+// Successfully generated 50 typings!
+// Compiled 12 Solidity files successfully (evm target: paris).
+// npx hardhat run ignition/modules/deploy.ts --network lisk-sepolia
+// NFT Contract Deployed at 0x2a4b1F6FED41f83b7fbcfD47c430eb5fcD315cE0
