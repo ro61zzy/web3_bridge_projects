@@ -1,85 +1,150 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.23;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import { IERC721 } from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract NFTMarketplace is Ownable, ERC721Enumerable {
-    using Counters for Counters.Counter;
+library NftMarketError {
+    error NotOwner(address);
+    error InsufficientBalance(uint256 amount);
+    error WithdrawFailed(address, uint256);
+    error InvalidPrice();
+    error InvalidTokenAddress();
+    error ListingExists();
+    error NotNftOwner();
+    error MarketPlaceNotApprovedToSpend();
+    error NotFundsToWithdraw();
+    error NotListingOwner();
+    error ListingNotActive();
+    error ListingExpired();
+}
 
-    Counters.Counter private _tokenIdCounter;
+library NftMarketEvent {
+    event OwnerWithdraw(address indexed owner, uint256 indexed amount);
+    event SellerWithdraw(address indexed seller, uint256 indexed amount);
+    event ListingCreated(
+        address indexed seller,
+        address indexed nftAddress,
+        uint256 indexed tokenId,
+        uint256 price,
+        uint256 deadline
+    );
+    event UpdatedListing(
+        address indexed nftAddress,
+        uint256 indexed tokenId,
+        uint256 price,
+        uint256 deadline
+    );
+    event CancelListing(address indexed nftAddress, uint256 indexed tokenId);
+    event BoughtNft(
+        address indexed buyer,
+        uint256 indexed price,
+        address indexed nftAddress,
+        uint256 tokenId
+    );
+}
 
-    struct NFT {
-        uint256 id;
-        address creator;
-        string uri;
-        uint256 price;
-        bool isListed;
+contract NftMarket is ReentrancyGuard {
+    struct Listing {
+        address sellerAddress;
+        uint256 nftPrice;
+        uint256 salesDeadline;
+        bool listingStatus;
     }
 
-    mapping(uint256 => NFT) public nfts;
-    mapping(uint256 => address) public nftToOwner;
-    
-    event NFTMinted(uint256 indexed tokenId, address indexed creator, string uri);
-    event NFTListed(uint256 indexed tokenId, uint256 price);
-    event NFTSold(uint256 indexed tokenId, address indexed buyer, uint256 price);
+    // Mapping of NFT address and tokenId to Listing
+    mapping(address => mapping(uint256 => Listing)) public nftListings;
+    // Seller's address to amount available to withdraw
+    mapping(address => uint256) public sellerBalances;
 
-    constructor() ERC721("NFTMarketplace", "NFTM") {}
+    address public owner;
+    uint256 public withdrawableByOwner;
 
-    // Mint a new NFT
-    function mintNFT(string memory uri) public onlyOwner {
-        uint256 tokenId = _tokenIdCounter.current();
-        _mint(msg.sender, tokenId);
-        _tokenIdCounter.increment();
-
-        nfts[tokenId] = NFT({
-            id: tokenId,
-            creator: msg.sender,
-            uri: uri,
-            price: 0,
-            isListed: false
-        });
-
-        emit NFTMinted(tokenId, msg.sender, uri);
+    constructor() {
+        owner = msg.sender;
     }
 
-    // List an NFT for sale
-    function listNFT(uint256 tokenId, uint256 price) public {
-        require(ownerOf(tokenId) == msg.sender, "Not the owner");
-        require(price > 0, "Price must be greater than zero");
-
-        nfts[tokenId].price = price;
-        nfts[tokenId].isListed = true;
-        emit NFTListed(tokenId, price);
+    function getNftListing(address nftTokenAddress, uint256 tokenId) external view returns (Listing memory) {
+        return nftListings[nftTokenAddress][tokenId];
     }
 
-    // Buy an NFT
-    function buyNFT(uint256 tokenId) public payable {
-        require(nfts[tokenId].isListed, "NFT not for sale");
-        require(msg.value >= nfts[tokenId].price, "Insufficient payment");
-        
-        address seller = ownerOf(tokenId);
-        require(seller != msg.sender, "Cannot buy your own NFT");
+    function ownerWithdraw(uint256 amount) external nonReentrant {
+        if (msg.sender != owner) revert NftMarketError.NotOwner(msg.sender);
+        if (amount > withdrawableByOwner) revert NftMarketError.InsufficientBalance(amount);
 
-        // Transfer the NFT to the buyer
-        _transfer(seller, msg.sender, tokenId);
+        withdrawableByOwner -= amount;
 
-        // Update ownership mapping
-        nftToOwner[tokenId] = msg.sender;
+        (bool success, ) = payable(owner).call{ value: amount }("");
+        if (!success) revert NftMarketError.WithdrawFailed(msg.sender, amount);
 
-        // Transfer payment to seller
-        payable(seller).transfer(nfts[tokenId].price);
-
-        // Mark NFT as no longer listed
-        nfts[tokenId].isListed = false;
-
-        emit NFTSold(tokenId, msg.sender, nfts[tokenId].price);
+        emit NftMarketEvent.OwnerWithdraw(msg.sender, amount);
     }
 
-    // Get NFT details
-    function getNFTDetails(uint256 tokenId) public view returns (NFT memory) {
-        return nfts[tokenId];
+    function listNftForSale(address nftAddress, uint256 tokenId, uint256 nftPrice, uint256 salesDeadline) external {
+        if (nftPrice <= 0) revert NftMarketError.InvalidPrice();
+        if (salesDeadline <= block.timestamp) revert NftMarketError.ListingExpired();
+        if (nftAddress == address(0)) revert NftMarketError.InvalidTokenAddress();
+        if (nftListings[nftAddress][tokenId].listingStatus) revert NftMarketError.ListingExists();
+        if (IERC721(nftAddress).ownerOf(tokenId) != msg.sender) revert NftMarketError.NotNftOwner();
+        if (IERC721(nftAddress).getApproved(tokenId) != address(this)) revert NftMarketError.MarketPlaceNotApprovedToSpend();
+
+        nftListings[nftAddress][tokenId] = Listing(msg.sender, nftPrice, salesDeadline, true);
+        emit NftMarketEvent.ListingCreated(msg.sender, nftAddress, tokenId, nftPrice, salesDeadline);
+    }
+
+    function updateListingForSale(address nftAddress, uint256 tokenId, uint256 nftPrice, uint256 salesDeadline) external {
+        Listing storage listing = nftListings[nftAddress][tokenId];
+
+        if (listing.sellerAddress != msg.sender) revert NftMarketError.NotListingOwner();
+        if (!listing.listingStatus) revert NftMarketError.ListingNotActive();
+        if (nftPrice <= 0) revert NftMarketError.InvalidPrice();
+        if (salesDeadline <= block.timestamp) revert NftMarketError.ListingExpired();
+
+        listing.nftPrice = nftPrice;
+        listing.salesDeadline = salesDeadline;
+
+        emit NftMarketEvent.UpdatedListing(nftAddress, tokenId, nftPrice, salesDeadline);
+    }
+
+    function cancelListingForSale(address nftAddress, uint256 tokenId) external {
+        Listing storage listing = nftListings[nftAddress][tokenId];
+
+        if (listing.sellerAddress != msg.sender) revert NftMarketError.NotListingOwner();
+        if (!listing.listingStatus) revert NftMarketError.ListingNotActive();
+
+        delete nftListings[nftAddress][tokenId];
+        emit NftMarketEvent.CancelListing(nftAddress, tokenId);
+    }
+
+    function buyNft(address nftAddress, uint256 tokenId) external payable nonReentrant {
+        Listing storage listing = nftListings[nftAddress][tokenId];
+
+        if (!listing.listingStatus) revert NftMarketError.ListingNotActive();
+        if (listing.salesDeadline < block.timestamp) revert NftMarketError.ListingExpired();
+        if (msg.value < listing.nftPrice) revert NftMarketError.InvalidPrice();
+
+        address sellerAddress = listing.sellerAddress;
+        uint256 marketplaceFee = (msg.value * 3) / 100;
+        uint256 sellerAmount = msg.value - marketplaceFee;
+
+        sellerBalances[sellerAddress] += sellerAmount;
+        withdrawableByOwner += marketplaceFee;
+
+        delete nftListings[nftAddress][tokenId];
+        IERC721(nftAddress).safeTransferFrom(sellerAddress, msg.sender, tokenId);
+
+        emit NftMarketEvent.BoughtNft(msg.sender, msg.value, nftAddress, tokenId);
+    }
+
+    function sellerWithdraw() external nonReentrant {
+        uint256 amount = sellerBalances[msg.sender];
+        if (amount == 0) revert NftMarketError.NotFundsToWithdraw();
+
+        sellerBalances[msg.sender] = 0;
+
+        (bool success, ) = payable(msg.sender).call{ value: amount }("");
+        if (!success) revert NftMarketError.WithdrawFailed(msg.sender, amount);
+
+        emit NftMarketEvent.SellerWithdraw(msg.sender, amount);
     }
 }
