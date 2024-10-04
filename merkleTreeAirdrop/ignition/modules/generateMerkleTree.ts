@@ -1,25 +1,24 @@
-import { MerkleTree } from "merkletreejs";
-import { ethers } from "ethers";
+import { MerkleTree } from 'merkletreejs';
+import keccak256 from 'keccak256';
 
-const airdropList = [
-  { address: "0x123...", amount: ethers.utils.parseEther("100") },
-  { address: "0x456...", amount: ethers.utils.parseEther("50") },
-  // Add more addresses and amounts here
+
+
+// Define the addresses and amounts you want to include in the Merkle tree
+const elements = [
+  { address: "0x1234567890abcdef1234567890abcdef12345678", amount: 100 },
+  { address: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcdef", amount: 200 },
+  { address: "0x567890abcdef1234567890abcdef1234567890ab", amount: 300 },
 ];
 
-function generateLeaf(address: string, amount: ethers.BigNumber): Buffer {
-  return Buffer.from(
-    ethers.utils.solidityKeccak256(["address", "uint256"], [address, amount]).slice(2),
-    "hex"
-  );
-}
+// Create leaves by hashing the address and amount
+const leaves = elements.map(element => 
+  keccak256(`${element.address}${element.amount}`)
+);
 
-const leaves = airdropList.map(item => generateLeaf(item.address, item.amount));
-const merkleTree = new MerkleTree(leaves, ethers.utils.keccak256, { sortPairs: true });
-const root = merkleTree.getRoot().toString("hex");
+// Generate the Merkle Tree
+const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
 
-console.log("Merkle Root:", root);
+// Get the Merkle Root
+const merkleRoot = tree.getRoot().toString('hex');
 
-// To generate a proof for an address and amount
-const proof = merkleTree.getHexProof(generateLeaf("0x123...", ethers.utils.parseEther("100")));
-console.log("Merkle Proof:", proof);
+console.log('Merkle Root:', merkleRoot);
