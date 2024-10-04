@@ -1,5 +1,4 @@
 import { MerkleTree } from "merkletreejs";
-import keccak256 from "keccak256";
 import { ethers } from "ethers";
 
 const airdropList = [
@@ -16,7 +15,7 @@ function generateLeaf(address: string, amount: ethers.BigNumber): Buffer {
 }
 
 const leaves = airdropList.map(item => generateLeaf(item.address, item.amount));
-const merkleTree = new MerkleTree(leaves, keccak256, { sortPairs: true });
+const merkleTree = new MerkleTree(leaves, ethers.utils.keccak256, { sortPairs: true });
 const root = merkleTree.getRoot().toString("hex");
 
 console.log("Merkle Root:", root);
