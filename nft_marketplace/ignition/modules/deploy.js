@@ -1,23 +1,29 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  // Deploy the NFT Marketplace contract
-  const nftMarket = await ethers.deployContract("NftMarket"); // Deploy the contract
+// Deploy the NFT Marketplace contract
+const nftMarket = await ethers.deployContract("NftMarket"); 
+await nftMarket.waitForDeployment();
 
-  // Wait for deployment (optional, depending on your setup)
-  await nftMarket.waitForDeployment();
+console.log("NFTMarket Contract Deployed at: " + nftMarket.target);
 
-  console.log("NFTMarket Contract Deployed at: " + nftMarket.target); // Log the deployed address
+// Deploy the NFT  contract
+const myNFT = await ethers.deployContract("MyNFT"); 
+await myNFT.waitForDeployment();
 
-  // Deploy the NFT  contract
-  const myNFT = await ethers.deployContract("MyNFT"); // Deploy the contract
+console.log("MyNFT Contract Deployed at: " + myNFT.target); 
 
-  // Wait for deployment (optional, depending on your setup)
-  await myNFT.waitForDeployment();
 
-  console.log("MyNFT Contract Deployed at: " + myNFT.target); // Log the deployed address
+  // Deploy the SaveERC20 contract
+  // Specify the ERC20 token address you want to save
+  const TokenAddress = "0x2CEBF8118Ac12C68B4a9fe6A589790d34eB10190";
+  const saveERC20 = await ethers.deployContract("SaveERC20", [TokenAddress]);
+  await saveERC20.waitForDeployment();
+
+  console.log("SaveERC20 Contract Deployed at: " + saveERC20.target);
 }
 
+// Execute the deployment script
 main().catch((error) => {
   console.error(error);
   process.exitCode = 1; // Exit with failure code
