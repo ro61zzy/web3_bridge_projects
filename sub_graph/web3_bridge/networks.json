@@ -1,0 +1,8 @@
+{
+  "mainnet": {
+    "BridgeERC20": {
+      "address": "0xf4fB9BF10E489EA3Edb03E094939341399587b0C",
+      "startBlock": 19663358
+    }
+  }
+}
