@@ -30,3 +30,5 @@ const config: HardhatUserConfig = {
 export default config;
 
 // npx hardhat verify --network lisk-sepolia <deployed address>
+// npx hardhat run scripts/deploy.ts --network lisk-sepolia
+//to get auth api, get from block explorer - ether scan
